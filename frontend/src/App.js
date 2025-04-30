@@ -18,8 +18,9 @@ import PostDetail from './pages/PostDetail';
 import EditPost from './pages/EditPost';
 import Schemes from './pages/Schemes';
 import SchemeDetail from './pages/SchemeDetail';
+import Dashboard from './pages/Dashboard';
 
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext.jsx';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
               
               {/* Protected Routes */}
               <Route element={<PrivateRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/advisory" element={<Advisory />} />
                 <Route path="/forum" element={<Forum />} />

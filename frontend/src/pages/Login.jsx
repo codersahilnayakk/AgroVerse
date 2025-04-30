@@ -1,9 +1,10 @@
-import { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { FaSignInAlt } from 'react-icons/fa';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../context/AuthContext.jsx';
 import Spinner from '../components/Spinner';
+import handleApiError from '../utils/handleApiError';
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -47,7 +48,7 @@ function Login() {
     <div className="max-w-md mx-auto">
       <section className="bg-white p-8 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center mb-6 text-green-700">
-          <FaSignInAlt className="inline-block mr-2 mb-1" /> Login
+          <FaEnvelope className="inline-block mr-2 mb-1" /> Login
         </h1>
         <p className="text-center text-gray-600 mb-8">
           Log in to access your AgriConnect account

@@ -6,6 +6,20 @@ const schemeSchema = mongoose.Schema(
       type: String,
       required: [true, 'Please add scheme name'],
     },
+    department: {
+      type: String,
+      required: [true, 'Please add department name'],
+      default: '',
+    },
+    description: {
+      type: String,
+      default: '',
+    },
+    category: {
+      type: String,
+      enum: ['insurance', 'income', 'credit', 'irrigation', 'infrastructure', 'cooperative', 'sustainability', 'other'],
+      default: 'other',
+    },
     eligibility: {
       type: String,
       required: [true, 'Please add eligibility criteria'],
@@ -14,19 +28,23 @@ const schemeSchema = mongoose.Schema(
       type: String,
       required: [true, 'Please add benefits details'],
     },
+    applicationProcess: {
+      type: String,
+      default: '',
+    },
     applicationLink: {
       type: String,
       default: '',
     },
-    department: {
+    documents: {
       type: String,
       default: '',
     },
     deadline: {
-      type: Date,
-      default: null,
+      type: String,
+      default: '',
     },
-    description: {
+    imageUrl: {
       type: String,
       default: '',
     },

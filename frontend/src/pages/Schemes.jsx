@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaFilter } from 'react-icons/fa';
 import Spinner from '../components/Spinner';
-import mockSchemes from '../data/mockSchemes';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Schemes = () => {
   const [schemes, setSchemes] = useState([]);
@@ -11,13 +12,15 @@ const Schemes = () => {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    // Fetch schemes
+    // Fetch schemes from the backend API
     const fetchSchemes = async () => {
       try {
-        // Use the imported mock data
-        setSchemes(mockSchemes);
+        setLoading(true);
+        const response = await axios.get('/api/schemes');
+        setSchemes(response.data);
       } catch (error) {
         console.error('Error fetching schemes:', error);
+        toast.error('Failed to load schemes. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -28,9 +31,10 @@ const Schemes = () => {
 
   // Filter schemes based on search term and filter
   const filteredSchemes = schemes.filter((scheme) => {
-    const matchesSearch = scheme.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      scheme.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      scheme.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      scheme.schemeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      scheme.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      scheme.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filter === 'all') return matchesSearch;
     return matchesSearch && scheme.category === filter;
@@ -93,17 +97,17 @@ const Schemes = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSchemes.length > 0 ? (
           filteredSchemes.map((scheme) => (
-            <div key={scheme.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div key={scheme._id} className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="h-48 overflow-hidden">
                 <img
                   src={scheme.imageUrl}
-                  alt={scheme.name}
+                  alt={scheme.schemeName}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-green-700">{scheme.name}</h2>
+                  <h2 className="text-xl font-semibold text-green-700">{scheme.schemeName}</h2>
                   <span className={`text-xs px-2 py-1 rounded-full ${getCategoryBadgeColor(scheme.category)}`}>
                     {scheme.category}
                   </span>
@@ -115,7 +119,7 @@ const Schemes = () => {
                   {scheme.description}
                 </p>
                 <Link
-                  to={`/schemes/${scheme.id}`}
+                  to={`/schemes/${scheme._id}`}
                   className="block w-full text-center py-2 bg-green-600 text-white rounded hover:bg-green-700 transition duration-200"
                 >
                   View Details

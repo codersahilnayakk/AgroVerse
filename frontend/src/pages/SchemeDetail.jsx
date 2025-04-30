@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaExternalLinkAlt, FaCheckCircle, FaInfoCircle, FaFileAlt, FaCalendarAlt } from 'react-icons/fa';
 import Spinner from '../components/Spinner';
-import mockSchemes from '../data/mockSchemes';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const SchemeDetail = () => {
   const { id } = useParams();
@@ -13,12 +14,12 @@ const SchemeDetail = () => {
     // Fetch the specific scheme
     const fetchScheme = async () => {
       try {
-        // In a real application, you would fetch from API
-        // For now, use the mock data
-        const foundScheme = mockSchemes.find(s => s.id === id);
-        setScheme(foundScheme);
+        setLoading(true);
+        const response = await axios.get(`/api/schemes/${id}`);
+        setScheme(response.data);
       } catch (error) {
         console.error('Error fetching scheme details:', error);
+        toast.error('Failed to load scheme details. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -46,6 +47,12 @@ const SchemeDetail = () => {
     );
   }
 
+  // Function to convert string list to array
+  const parseDocumentsList = (documentsString) => {
+    if (!documentsString) return [];
+    return documentsString.split(',').map(item => item.trim());
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Link
@@ -59,7 +66,7 @@ const SchemeDetail = () => {
         <div className="relative h-64 md:h-80">
           <img
             src={scheme.imageUrl}
-            alt={scheme.name}
+            alt={scheme.schemeName}
             className="w-full h-full object-cover"
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
@@ -71,7 +78,7 @@ const SchemeDetail = () => {
                 {scheme.department}
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">{scheme.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">{scheme.schemeName}</h1>
           </div>
         </div>
 
@@ -104,7 +111,7 @@ const SchemeDetail = () => {
                   <FaFileAlt className="mr-2" /> Required Documents
                 </h2>
                 <ul className="list-disc pl-5 text-gray-700">
-                  {scheme.documents && scheme.documents.map((doc, index) => (
+                  {parseDocumentsList(scheme.documents).map((doc, index) => (
                     <li key={index} className="mb-1">{doc}</li>
                   ))}
                 </ul>
@@ -123,14 +130,16 @@ const SchemeDetail = () => {
           </div>
 
           <div className="mt-8 text-center">
-            <a
-              href={scheme.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
-            >
-              Visit Official Website <FaExternalLinkAlt className="ml-2" />
-            </a>
+            {scheme.applicationLink && (
+              <a
+                href={scheme.applicationLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200"
+              >
+                Visit Official Website <FaExternalLinkAlt className="ml-2" />
+              </a>
+            )}
           </div>
         </div>
       </div>

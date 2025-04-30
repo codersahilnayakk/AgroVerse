@@ -1,8 +1,8 @@
-import React, { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaUser, FaBars, FaTimes, FaSeedling } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../context/AuthContext.jsx';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);

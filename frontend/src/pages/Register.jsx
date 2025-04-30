@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../context/AuthContext.jsx';
 import Spinner from '../components/Spinner';
 import handleApiError from '../utils/handleApiError';
 

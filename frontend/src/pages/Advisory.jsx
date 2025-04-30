@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../context/AuthContext.jsx';
 import AdvisoryForm from '../components/AdvisoryForm';
 import Spinner from '../components/Spinner';
 import advisoryService from '../api/advisoryService';
@@ -9,12 +9,12 @@ import advisoryService from '../api/advisoryService';
 function Advisory() {
   const [advisories, setAdvisories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user, isAuthenticated } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if user is authenticated, if not redirect to login
-    if (!isAuthenticated) {
+    if (!user) {
       toast.error('Please log in to access advisory features');
       navigate('/login');
       return;
@@ -45,7 +45,7 @@ function Advisory() {
     };
 
     fetchAdvisories();
-  }, [user, isAuthenticated, navigate]);
+  }, [user, navigate]);
 
   const handleAdvisoryCreated = (newAdvisory) => {
     setAdvisories(prevAdvisories => [newAdvisory, ...prevAdvisories]);
@@ -79,7 +79,7 @@ function Advisory() {
   }
 
   // If not authenticated, don't render the page
-  if (!isAuthenticated) {
+  if (!user) {
     return null;
   }
 
