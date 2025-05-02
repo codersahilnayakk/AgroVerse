@@ -6,10 +6,15 @@ const {
   getAdvisories,
   getAdvisoryById,
   deleteAdvisory,
+  getAdvisoryCombinations,
+  migrateUserAdvisories,
 } = require('../controllers/advisoryController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Protect all routes
+// Public route to get all available advisory combinations
+router.get('/combinations', getAdvisoryCombinations);
+
+// Protect all other routes
 router.use(protect);
 
 // Get all advisories for logged in user and create new advisory
@@ -30,5 +35,13 @@ router
   .route('/:id')
   .get(getAdvisoryById)
   .delete(deleteAdvisory);
+
+// Get advisories for a specific user
+// This route is redundant with the main getAdvisories route when using JWT auth
+// But adding it for completeness
+router.get('/user/:userId', getAdvisories);
+
+// Migrate user advisories from Advisory to UserAdvisory (admin only)
+router.post('/migrate', migrateUserAdvisories);
 
 module.exports = router; 

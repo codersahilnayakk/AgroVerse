@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import AuthContext from '../context/AuthContext';
 import advisoryService from '../api/advisoryService';
@@ -8,33 +8,42 @@ import Spinner from './Spinner';
 const AdvisoryForm = ({ onAdvisoryCreated }) => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(true);
   const [formData, setFormData] = useState({
     soilType: '',
     season: '',
     waterLevel: '',
     region: ''
   });
+  
+  const [availableCombinations, setAvailableCombinations] = useState({
+    soilTypes: [],
+    seasons: [],
+    waterLevels: [],
+    combinations: []
+  });
 
-  const soilTypes = [
-    { value: 'alluvial', label: 'Alluvial Soil' },
-    { value: 'black', label: 'Black Soil' },
-    { value: 'red', label: 'Red Soil' },
-    { value: 'laterite', label: 'Laterite Soil' },
-    { value: 'mountainous', label: 'Mountain Soil' },
-    { value: 'desert', label: 'Desert Soil' },
-    { value: 'saline', label: 'Saline Soil' }
+  // Default options in case API fails
+  const defaultSoilTypes = [
+    { value: 'Alluvial', label: 'Alluvial Soil' },
+    { value: 'Black', label: 'Black Soil' },
+    { value: 'Red', label: 'Red Soil' },
+    { value: 'Laterite', label: 'Laterite Soil' },
+    { value: 'Mountain', label: 'Mountain Soil' },
+    { value: 'Desert', label: 'Desert Soil' },
+    { value: 'Saline', label: 'Saline Soil' }
   ];
 
-  const seasons = [
-    { value: 'kharif', label: 'Kharif (Monsoon)' },
-    { value: 'rabi', label: 'Rabi (Winter)' },
-    { value: 'zaid', label: 'Zaid (Summer)' }
+  const defaultSeasons = [
+    { value: 'Kharif', label: 'Kharif (Monsoon)' },
+    { value: 'Rabi', label: 'Rabi (Winter)' },
+    { value: 'Zaid', label: 'Zaid (Summer)' }
   ];
 
-  const waterLevels = [
-    { value: 'high', label: 'High' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'low', label: 'Low' }
+  const defaultWaterLevels = [
+    { value: 'High', label: 'High' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Low', label: 'Low' }
   ];
 
   const regions = [
@@ -46,12 +55,98 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
     { value: 'northeast', label: 'North-East India' }
   ];
 
+  // Get available combinations from API
+  useEffect(() => {
+    const fetchCombinations = async () => {
+      try {
+        const data = await advisoryService.getAdvisoryCombinations();
+        
+        // Format soil types for dropdown
+        const soilTypeOptions = data.soilTypes.map(type => ({
+          value: type,
+          label: `${type} Soil`
+        }));
+        
+        // Format seasons for dropdown
+        const seasonOptions = data.seasons.map(season => {
+          let label = season;
+          if (season === 'Kharif') label += ' (Monsoon)';
+          if (season === 'Rabi') label += ' (Winter)';
+          if (season === 'Zaid') label += ' (Summer)';
+          return { value: season, label };
+        });
+        
+        // Format water levels for dropdown
+        const waterLevelOptions = data.waterLevels.map(level => ({
+          value: level,
+          label: level
+        }));
+        
+        setAvailableCombinations({
+          soilTypes: soilTypeOptions.length > 0 ? soilTypeOptions : defaultSoilTypes,
+          seasons: seasonOptions.length > 0 ? seasonOptions : defaultSeasons,
+          waterLevels: waterLevelOptions.length > 0 ? waterLevelOptions : defaultWaterLevels,
+          combinations: data.combinations || []
+        });
+      } catch (error) {
+        console.error('Error fetching advisory combinations:', error);
+        // Use default values if API fails
+        setAvailableCombinations({
+          soilTypes: defaultSoilTypes,
+          seasons: defaultSeasons,
+          waterLevels: defaultWaterLevels,
+          combinations: []
+        });
+      } finally {
+        setFormLoading(false);
+      }
+    };
+    
+    fetchCombinations();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  // Get available options based on selected values
+  const getFilteredOptions = (field) => {
+    if (!formData.soilType && !formData.season && !formData.waterLevel) {
+      // If nothing selected yet, return all options
+      switch (field) {
+        case 'soilType': return availableCombinations.soilTypes;
+        case 'season': return availableCombinations.seasons;
+        case 'waterLevel': return availableCombinations.waterLevels;
+        default: return [];
+      }
+    }
+
+    // Filter combinations based on selected values
+    const filteredCombinations = availableCombinations.combinations.filter(combo => {
+      if (formData.soilType && combo.soilType !== formData.soilType) return false;
+      if (formData.season && combo.season !== formData.season) return false;
+      if (formData.waterLevel && combo.waterLevel !== formData.waterLevel) return false;
+      return true;
+    });
+
+    // Extract unique values for the requested field
+    const uniqueValues = [...new Set(filteredCombinations.map(combo => combo[field]))];
+    
+    // Format values as options
+    switch (field) {
+      case 'soilType': 
+        return availableCombinations.soilTypes.filter(opt => uniqueValues.includes(opt.value));
+      case 'season': 
+        return availableCombinations.seasons.filter(opt => uniqueValues.includes(opt.value));
+      case 'waterLevel': 
+        return availableCombinations.waterLevels.filter(opt => uniqueValues.includes(opt.value));
+      default: 
+        return [];
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -90,6 +185,14 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
     }
   };
 
+  if (formLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 flex justify-center items-center min-h-[300px]">
+        <Spinner />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold text-green-700 mb-4">
@@ -109,7 +212,7 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
             required
           >
             <option value="">Select Soil Type</option>
-            {soilTypes.map(soil => (
+            {getFilteredOptions('soilType').map(soil => (
               <option key={soil.value} value={soil.value}>
                 {soil.label}
               </option>
@@ -129,7 +232,7 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
             required
           >
             <option value="">Select Season</option>
-            {seasons.map(season => (
+            {getFilteredOptions('season').map(season => (
               <option key={season.value} value={season.value}>
                 {season.label}
               </option>
@@ -149,7 +252,7 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
             required
           >
             <option value="">Select Water Level</option>
-            {waterLevels.map(level => (
+            {getFilteredOptions('waterLevel').map(level => (
               <option key={level.value} value={level.value}>
                 {level.label}
               </option>

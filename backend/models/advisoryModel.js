@@ -22,13 +22,17 @@ const advisorySchema = mongoose.Schema(
       type: String,
       default: '',
     },
-    soilManagementTips: {
+    fertilizerRecommendations: {
       type: String,
       default: '',
     },
+    soilManagementTips: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
     irrigationStrategy: {
-      type: String,
-      default: '',
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
     },
     cropVarieties: {
       type: [{
@@ -46,14 +50,13 @@ const advisorySchema = mongoose.Schema(
       ref: 'Scheme',
       default: [],
     },
-    marketPriceTrends: {
-      type: [{
-        crop: String,
-        price: Number,
-        unit: String,
-        trend: String // 'up', 'down', 'stable'
-      }],
+    governmentSchemes: {
+      type: [String],
       default: [],
+    },
+    marketPriceTrends: {
+      type: mongoose.Schema.Types.Mixed,
+      default: '',
     },
     soilTestingRecommendations: {
       type: String,
@@ -69,5 +72,15 @@ const advisorySchema = mongoose.Schema(
     timestamps: true,
   }
 );
+
+advisorySchema.pre('save', function(next) {
+  if (this.fertilizerRecommendations && !this.fertilizerTips) {
+    this.fertilizerTips = this.fertilizerRecommendations;
+  }
+  else if (this.fertilizerTips && !this.fertilizerRecommendations) {
+    this.fertilizerRecommendations = this.fertilizerTips;
+  }
+  next();
+});
 
 module.exports = mongoose.model('Advisory', advisorySchema); 

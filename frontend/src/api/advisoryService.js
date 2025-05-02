@@ -109,6 +109,20 @@ const deleteAdvisory = async (advisoryId, token) => {
   }
 };
 
+/**
+ * Get available advisory combinations
+ * @returns {Promise<Object>} Available combinations of soil type, season, and water level
+ */
+const getAdvisoryCombinations = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/combinations`);
+    return response.data;
+  } catch (error) {
+    console.error('Get advisory combinations error:', error);
+    throw error;
+  }
+};
+
 // Mock data for advisories
 let advisories = [
   {
@@ -509,7 +523,25 @@ const advisoryService = {
         resolve({ success: true });
       }, 500);
     });
+  },
+
+  // Get available advisory combinations
+  getAdvisoryCombinations: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/combinations`);
+      return response.data;
+    } catch (error) {
+      console.error('Get advisory combinations error:', error);
+      throw error;
+    }
   }
 };
 
-export default advisoryService; 
+// Export default object with all the services
+export default {
+  createAdvisory,
+  getAdvisories,
+  getAdvisoryById,
+  deleteAdvisory,
+  getAdvisoryCombinations
+}; 
