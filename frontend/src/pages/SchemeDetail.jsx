@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaExternalLinkAlt, FaCheckCircle, FaInfoCircle, FaFileAlt, FaCalendarAlt, FaBuilding, FaDownload, FaShareAlt, FaRegBookmark } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 const SchemeDetail = () => {
   const { id } = useParams();
@@ -94,7 +95,7 @@ const SchemeDetail = () => {
           <div className="relative h-64 md:h-96">
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent z-10"></div>
             <img
-              src={scheme.imageUrl || `https://placehold.co/1200x600/059669/ffffff?text=${encodeURIComponent(scheme.schemeName)}`}
+              src={getFullImageUrl(scheme.imageUrl) || `https://placehold.co/1200x600/059669/ffffff?text=${encodeURIComponent(scheme.schemeName)}`}
               alt={scheme.schemeName}
               className="w-full h-full object-cover"
             />

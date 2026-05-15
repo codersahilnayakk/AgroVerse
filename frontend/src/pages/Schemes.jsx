@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaSearch, FaFilter, FaCheckCircle, FaRupeeSign, FaFileAlt, FaExternalLinkAlt } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 const CATEGORIES = [
   'All Categories',
@@ -146,7 +147,7 @@ const SchemeCard = ({ scheme }) => {
       <div className="h-48 overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
         <img
-          src={scheme.imageUrl || `https://placehold.co/800x400/059669/ffffff?text=${encodeURIComponent(scheme.schemeName)}&font=Montserrat`}
+          src={getFullImageUrl(scheme.imageUrl) || `https://placehold.co/800x400/059669/ffffff?text=${encodeURIComponent(scheme.schemeName)}&font=Montserrat`}
           alt={scheme.schemeName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
         />

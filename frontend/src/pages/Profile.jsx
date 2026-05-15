@@ -5,6 +5,7 @@ import AuthContext from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 import forumService from '../services/forumService';
 import schemeService from '../services/schemeService';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 const Profile = () => {
   const { user, updateProfile, loading: authLoading } = useContext(AuthContext);
@@ -229,7 +230,7 @@ const Profile = () => {
                       <div className="relative mb-3">
                         {previewImage || profileData.profilePicture ? (
                           <img
-                            src={previewImage || profileData.profilePicture}
+                            src={getFullImageUrl(previewImage || profileData.profilePicture)}
                             alt={profileData.name}
                             className="w-32 h-32 rounded-full object-cover border-4 border-green-50 shadow-sm"
                           />
@@ -360,7 +361,7 @@ const Profile = () => {
                       <div className="mb-6 md:mb-0 md:mr-8 flex flex-col items-center">
                         {profileData.profilePicture ? (
                           <img
-                            src={profileData.profilePicture}
+                            src={getFullImageUrl(profileData.profilePicture)}
                             alt={profileData.name}
                             className="w-32 h-32 rounded-full object-cover mb-3 border-4 border-green-50 shadow-sm"
                           />
