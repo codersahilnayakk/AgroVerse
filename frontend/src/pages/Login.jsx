@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import AuthContext from '../context/AuthContext.jsx';
+import AuthContext from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 import handleApiError from '../utils/handleApiError';
 
@@ -51,7 +51,7 @@ function Login() {
           <FaEnvelope className="inline-block mr-2 mb-1" /> Login
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Log in to access your AgriConnect account
+          Log in to access your Agroverse account
         </p>
 
         <form onSubmit={onSubmit}>

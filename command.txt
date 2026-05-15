@@ -1,0 +1,9 @@
+
+mongodb+srv://agroverse:8MJNrERD3HbUFV39@agroverse.8MJNrERD3HbUFV39.mongodb.net/?appName=AgroVerse
+
+username = agroverse
+password = 8MJNrERD3HbUFV39
+mongodb atlas
+
+
+

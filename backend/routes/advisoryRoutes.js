@@ -8,11 +8,15 @@ const {
   deleteAdvisory,
   getAdvisoryCombinations,
   migrateUserAdvisories,
+  getRecommendations,
 } = require('../controllers/advisoryController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Public route to get all available advisory combinations
 router.get('/combinations', getAdvisoryCombinations);
+
+// Get AI recommendations (public)
+router.post('/recommendations', getRecommendations);
 
 // Protect all other routes
 router.use(protect);
@@ -26,6 +30,7 @@ router
       check('soilType', 'Soil type is required').not().isEmpty(),
       check('season', 'Season is required').not().isEmpty(),
       check('waterLevel', 'Water level is required').not().isEmpty(),
+      check('region', 'Region is required').not().isEmpty(),
     ],
     createAdvisory
   );

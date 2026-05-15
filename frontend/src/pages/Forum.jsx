@@ -5,7 +5,7 @@ import { FaPlus, FaFilter, FaSearch, FaThumbsUp, FaEye, FaTag } from 'react-icon
 import AuthContext from '../context/AuthContext';
 import ForumPostCard from '../components/ForumPostCard';
 import Spinner from '../components/Spinner';
-import forumService from '../api/forumService';
+import forumService from '../services/forumService';
 
 const Forum = () => {
   const { user } = useContext(AuthContext);
@@ -18,14 +18,15 @@ const Forum = () => {
 
   const categories = [
     "all",
-    "General Discussion",
-    "Crop Management",
+    "Crop Production",
     "Livestock",
-    "Equipment",
-    "Market Prices",
-    "Weather Alerts",
-    "Soil Health",
+    "Farm Equipment",
+    "Market Trends",
+    "Schemes & Subsidies",
+    "Weather",
     "Pest Control",
+    "Soil Management",
+    "General Discussion"
   ];
 
   useEffect(() => {
@@ -193,7 +194,7 @@ const Forum = () => {
             <div key={post._id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
-                  <Link to={`/forum/${post._id}`} className="text-xl font-semibold text-green-700 hover:text-green-800">
+                  <Link to={`/forum/post/${post._id}`} className="text-xl font-semibold text-green-700 hover:text-green-800">
                     {post.title}
                   </Link>
                   <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">

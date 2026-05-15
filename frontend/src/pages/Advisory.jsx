@@ -1,31 +1,57 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import AuthContext from '../context/AuthContext.jsx';
+import AuthContext from '../context/AuthContext';
 import AdvisoryForm from '../components/AdvisoryForm';
 import Spinner from '../components/Spinner';
-import advisoryService from '../api/advisoryService';
+import advisoryService from '../services/advisoryService';
 import { format } from 'date-fns';
+
+import { 
+  FaLeaf, FaTint, FaMapMarkerAlt, FaSun, FaChartLine, 
+  FaThermometerHalf, FaCheckCircle, FaExclamationTriangle, 
+  FaCloudRain, FaSortAmountDown, FaHistory, FaStar
+} from 'react-icons/fa';
 
 function Advisory() {
   const [advisories, setAdvisories] = useState([]);
   const [selectedAdvisory, setSelectedAdvisory] = useState(null);
+  const [aiData, setAiData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState('score'); // score, profit, yield
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Format date with better error handling
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
-      return new Date(dateString).toLocaleDateString();
+      return format(new Date(dateString), 'dd MMM yyyy, h:mm a');
     } catch (error) {
       return 'N/A';
     }
   };
 
   useEffect(() => {
-    // Check if user is authenticated, if not redirect to login
+    // Add Google Translate Script
+    const addGoogleTranslate = () => {
+      if (!document.getElementById('google-translate-script')) {
+        const script = document.createElement('script');
+        script.id = 'google-translate-script';
+        script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        document.body.appendChild(script);
+        window.googleTranslateElementInit = () => {
+          new window.google.translate.TranslateElement(
+            { pageLanguage: 'en', includedLanguages: 'en,hi,gu,pa,mr', layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE },
+            'google_translate_element'
+          );
+        };
+      }
+    };
+    addGoogleTranslate();
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       toast.error('Please log in to access advisory features');
       navigate('/login');
@@ -34,395 +60,325 @@ function Advisory() {
 
     const fetchAdvisories = async () => {
       try {
-        if (!user?.token) {
-          toast.error('Authentication token missing');
-          navigate('/login');
-          return;
-        }
-
+        if (!user?.token) return;
         const data = await advisoryService.getAdvisories(user.token);
-        setAdvisories(data);
-        
-        // Set the most recent advisory as selected if there is one
-        if (data.length > 0) {
-          setSelectedAdvisory(data[0]);
+        if (Array.isArray(data)) {
+          setAdvisories(data);
+          if (data.length > 0) {
+            handleSelectAdvisory(data[0]);
+          }
+        } else {
+          setAdvisories([]);
         }
       } catch (error) {
         console.error('Error fetching advisories:', error);
-        const errorMessage = error.response?.data?.message || 'Error fetching advisories';
-        toast.error(errorMessage);
-        
-        // If unauthorized or invalid token, redirect to login
-        if (error.response?.status === 401) {
-          navigate('/login');
-        }
       } finally {
         setLoading(false);
       }
     };
-
     fetchAdvisories();
   }, [user, navigate]);
 
+  const handleSelectAdvisory = async (advisory) => {
+    setSelectedAdvisory(advisory);
+    setAiData(null); // Clear previous data while loading
+    try {
+      const generated = await advisoryService.getRecommendations({
+        soilType: advisory.soilType,
+        season: advisory.season,
+        waterLevel: advisory.waterLevel,
+        region: advisory.region || 'Maharashtra'
+      });
+      setAiData(generated);
+    } catch (error) {
+      console.error('Error fetching AI recommendations:', error);
+      toast.error('Failed to load recommendations');
+    }
+  };
+
   const handleAdvisoryCreated = (newAdvisory) => {
-    setAdvisories(prevAdvisories => [newAdvisory, ...prevAdvisories]);
-    setSelectedAdvisory(newAdvisory);
+    setAdvisories(prev => [newAdvisory, ...prev]);
+    handleSelectAdvisory(newAdvisory);
   };
 
   const handleDeleteAdvisory = async (id) => {
-    if (!user?.token) {
-      toast.error('Authentication token missing');
-      navigate('/login');
-      return;
-    }
-
     try {
       await advisoryService.deleteAdvisory(id, user.token);
-      const updatedAdvisories = advisories.filter((advisory) => advisory._id !== id);
-      setAdvisories(updatedAdvisories);
-      
-      // If we deleted the selected advisory, select the next one if available
+      const updated = advisories.filter(a => a._id !== id);
+      setAdvisories(updated);
       if (selectedAdvisory && selectedAdvisory._id === id) {
-        setSelectedAdvisory(updatedAdvisories.length > 0 ? updatedAdvisories[0] : null);
+        if (updated.length > 0) handleSelectAdvisory(updated[0]);
+        else {
+          setSelectedAdvisory(null);
+          setAiData(null);
+        }
       }
-      
       toast.success('Advisory deleted');
     } catch (error) {
-      console.error('Error deleting advisory:', error);
-      const errorMessage = error.response?.data?.message || 'Error deleting advisory';
-      toast.error(errorMessage);
-      
-      // If unauthorized, redirect to login
-      if (error.response?.status === 401) {
-        navigate('/login');
-      }
+      toast.error('Error deleting advisory');
     }
   };
 
-  const handleSelectAdvisory = (advisory) => {
-    setSelectedAdvisory(advisory);
-  };
-
-  if (loading) {
-    return <Spinner />;
-  }
-
-  // If not authenticated, don't render the page
-  if (!user) {
-    return null;
-  }
-
-  // Get capitalized text with fallback
-  const getCapitalized = (text) => {
-    if (!text) return 'Unknown';
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  };
-
-  // Helper function to safely render array or string content
-  const renderContent = (content) => {
-    if (!content) return <p className="text-gray-500 italic">Not available</p>;
-    
-    if (Array.isArray(content)) {
-      if (content.length === 0) return <p className="text-gray-500 italic">Not available</p>;
-      return content.map((item, index) => <p key={index} className="mb-1">{item}</p>);
+  const getSortedCrops = () => {
+    if (!aiData || !aiData.crops) return [];
+    let crops = [...aiData.crops];
+    if (sortBy === 'profit') {
+      crops.sort((a, b) => b.profitScore - a.profitScore);
+    } else if (sortBy === 'score') {
+      crops.sort((a, b) => b.suitabilityScore - a.suitabilityScore);
     }
-    
-    // Handle string with possible line breaks
-    if (typeof content === 'string') {
-      return content.split('\n').map((line, index) => (
-        <p key={index} className="mb-1">{line}</p>
-      ));
-    }
-    
-    // Fallback for any other data type
-    return <p className="text-gray-700">{JSON.stringify(content)}</p>;
+    return crops;
   };
 
-  // Safely get array data regardless of format
-  const getArrayData = (field) => {
-    if (!selectedAdvisory) return [];
-    
-    // Try different field names
-    const fieldNames = [field];
-    
-    // Add alternate field names
-    if (field === 'fertilizerTips') fieldNames.push('fertilizerRecommendations');
-    if (field === 'fertilizerRecommendations') fieldNames.push('fertilizerTips');
-    
-    // Try each field name
-    for (const name of fieldNames) {
-      const data = selectedAdvisory[name];
-      if (!data) continue;
-      
-      // If it's already an array, return it
-      if (Array.isArray(data)) return data;
-      
-      // If it's a string with line breaks, split it into an array
-      if (typeof data === 'string' && data.includes('\n')) {
-        return data.split('\n').filter(line => line.trim());
-      }
-      
-      // If it's a plain string, make it a single-item array
-      if (typeof data === 'string' && data.trim()) {
-        return [data];
-      }
-    }
-    
-    return [];
-  };
+  if (loading) return <Spinner />;
+  if (!user) return null;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-green-700 mb-6">
-        Crop Advisory
-      </h1>
-      
-      <div className="grid md:grid-cols-12 gap-8">
-        {/* Left column - Form and History */}
-        <div className="md:col-span-4">
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-xl font-semibold text-green-700 mb-4">
-              Get New Recommendations
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Get personalized crop recommendations based on your soil type, season,
-              and water availability.
+    <div className="bg-gray-50/50 min-h-screen py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header Section */}
+        <div className="mb-8 flex flex-col md:flex-row justify-between md:items-end gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">AI Crop Advisory</h1>
+            <p className="text-gray-500 mt-2 text-sm max-w-2xl">
+              Get personalized, data-driven agricultural recommendations powered by our advanced Agritech AI engine.
             </p>
-            <AdvisoryForm onAdvisoryCreated={handleAdvisoryCreated} />
           </div>
+          <div id="google_translate_element" className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden text-sm"></div>
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8">
           
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-green-700 mb-4">
-              Your Previous Advisories
-            </h2>
+          {/* LEFT COLUMN: FORM & HISTORY */}
+          <div className="lg:col-span-4 space-y-6">
+            <AdvisoryForm onAdvisoryCreated={handleAdvisoryCreated} />
             
-            {advisories.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-gray-500">
-                  You haven't created any advisories yet. Use the form to get crop
-                  recommendations.
+            {/* History Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <FaHistory className="text-emerald-500" /> Previous Advisories
+              </h3>
+              
+              {advisories.length === 0 ? (
+                <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <p className="text-gray-400 text-sm">No advisories yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {advisories.map((adv) => (
+                    <div
+                      key={adv._id}
+                      onClick={() => handleSelectAdvisory(adv)}
+                      className={`relative overflow-hidden group cursor-pointer p-4 rounded-xl border transition-all duration-300 ${
+                        selectedAdvisory?._id === adv._id 
+                          ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                          : 'bg-white border-gray-100 hover:border-emerald-100 hover:bg-emerald-50/30'
+                      }`}
+                    >
+                      {selectedAdvisory?._id === adv._id && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-l-xl"></div>
+                      )}
+                      
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 rounded-md">
+                              {adv.soilType}
+                            </span>
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 rounded-md">
+                              {adv.waterLevel} Water
+                            </span>
+                          </div>
+                          <p className="font-semibold text-gray-900 text-sm">
+                            {adv.region || 'Unknown Region'} • {adv.season}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                            {formatDate(adv.createdAt)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteAdvisory(adv._id); }}
+                          className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                          title="Delete"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: AI INSIGHTS & RESULTS */}
+          <div className="lg:col-span-8">
+            {!selectedAdvisory || !aiData ? (
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 flex flex-col items-center justify-center text-center h-full min-h-[600px]">
+                <div className="w-48 h-48 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+                  <FaLeaf className="text-6xl text-emerald-300" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">AI Farming Intelligence</h2>
+                <p className="text-gray-500 max-w-md mx-auto mb-8">
+                  Enter your farm parameters on the left to receive intelligent, data-driven crop recommendations, climate insights, and risk analysis.
                 </p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {advisories.map((advisory) => (
-                  <div
-                    key={advisory._id}
-                    className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                      selectedAdvisory && selectedAdvisory._id === advisory._id 
-                        ? 'bg-green-100 border-2 border-green-500' 
-                        : 'bg-gray-100 hover:bg-green-50'
-                    }`}
-                    onClick={() => handleSelectAdvisory(advisory)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-green-700">
-                          {getCapitalized(advisory.soilType)} - {getCapitalized(advisory.season)}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Water: {getCapitalized(advisory.waterLevel)}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {formatDate(advisory.createdAt)}
-                        </p>
+              <div className="space-y-6">
+                
+                {/* AI Insights Banner */}
+                <div className="bg-gradient-to-br from-emerald-800 to-green-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                  <div className="absolute right-20 -bottom-10 w-32 h-32 bg-emerald-400/20 rounded-full blur-xl"></div>
+                  
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                      <h2 className="text-xl font-bold mb-1 flex items-center gap-2">
+                        <FaCheckCircle className="text-emerald-400" /> Advisory Summary
+                      </h2>
+                      <div className="flex flex-wrap gap-3 mt-3 text-sm font-medium text-emerald-100">
+                        <span className="flex items-center gap-1.5"><FaMapMarkerAlt className="text-emerald-400" /> {selectedAdvisory.region}</span>
+                        <span className="flex items-center gap-1.5"><FaLeaf className="text-emerald-400" /> {selectedAdvisory.soilType}</span>
+                        <span className="flex items-center gap-1.5"><FaSun className="text-emerald-400" /> {selectedAdvisory.season}</span>
+                        <span className="flex items-center gap-1.5"><FaTint className="text-emerald-400" /> {selectedAdvisory.waterLevel}</span>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAdvisory(advisory._id);
-                        }}
-                        className="text-red-500 hover:text-red-700 text-sm"
-                      >
-                        Delete
-                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Right column - Detailed Advisory View */}
-        <div className="md:col-span-8">
-          {selectedAdvisory ? (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="border-b pb-4 mb-6">
-                <h2 className="text-2xl font-bold text-green-700">
-                  Advisory Report
-                </h2>
-                <p className="text-gray-500">
-                  Generated on: {formatDate(selectedAdvisory.createdAt)}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                    {getCapitalized(selectedAdvisory.soilType)} Soil
-                  </span>
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                    {getCapitalized(selectedAdvisory.season)} Season
-                  </span>
-                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">
-                    {getCapitalized(selectedAdvisory.waterLevel)} Water
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Recommended Crops */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">1</span>
-                    Recommended Crops
-                  </h3>
-                  {selectedAdvisory.recommendedCrops && selectedAdvisory.recommendedCrops.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedAdvisory.recommendedCrops.map((crop, index) => (
-                        <span
-                          key={index}
-                          className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"
-                        >
-                          {crop}
-                        </span>
+
+                  <div className="mt-5 pt-5 border-t border-emerald-700/50">
+                    <ul className="space-y-2">
+                      {aiData.insights.map((insight, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-emerald-50">
+                          <FaStar className="text-yellow-400 mt-1 shrink-0" />
+                          <span>{insight}</span>
+                        </li>
                       ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No crop recommendations available</p>
-                  )}
-                </div>
-                
-                {/* Soil Management Tips */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">2</span>
-                    Soil Management
-                  </h3>
-                  <div className="text-gray-700">
-                    {renderContent(getArrayData('soilManagementTips'))}
+                    </ul>
                   </div>
                 </div>
 
-                {/* Fertilizer Recommendations */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">3</span>
-                    Fertilizer Recommendations
-                  </h3>
-                  <div className="text-gray-700">
-                    {renderContent(getArrayData('fertilizerTips') || getArrayData('fertilizerRecommendations'))}
+                {/* Filters */}
+                <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <h3 className="font-bold text-gray-900">Recommended Crops ({aiData.crops.length})</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                      <FaSortAmountDown /> Sort By
+                    </span>
+                    <select 
+                      value={sortBy} 
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="text-sm font-medium bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="score">Suitability Score</option>
+                      <option value="profit">Profitability</option>
+                    </select>
                   </div>
                 </div>
-                
-                {/* Irrigation Strategy */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">4</span>
-                    Irrigation Strategy
-                  </h3>
-                  <div className="text-gray-700">
-                    {renderContent(getArrayData('irrigationStrategy'))}
+
+                {/* Crops Grid */}
+                {getSortedCrops().length === 0 ? (
+                  <div className="bg-white p-10 rounded-2xl border border-gray-100 text-center">
+                    <FaExclamationTriangle className="text-4xl text-amber-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-gray-900">No Perfect Matches Found</h3>
+                    <p className="text-gray-500 mt-1 text-sm">Your specific soil and water combination is highly irregular for this season. Please consult a local agricultural extension office.</p>
                   </div>
-                </div>
-                
-                {/* Sowing & Harvesting Calendar */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">5</span>
-                    Sowing & Harvesting Calendar
-                  </h3>
-                  <div className="text-gray-700">
-                    {renderContent(getArrayData('sowingHarvestingCalendar'))}
-                  </div>
-                </div>
-                
-                {/* Market Price Trends */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">6</span>
-                    Market Price Trends
-                  </h3>
-                  {typeof selectedAdvisory.marketPriceTrends === 'string' && selectedAdvisory.marketPriceTrends ? (
-                    <div className="text-gray-700">
-                      {renderContent(selectedAdvisory.marketPriceTrends)}
-                    </div>
-                  ) : Array.isArray(selectedAdvisory.marketPriceTrends) && selectedAdvisory.marketPriceTrends.length > 0 ? (
-                    <div className="space-y-2">
-                      {selectedAdvisory.marketPriceTrends.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center border-b pb-2">
-                          <span className="font-medium">{item.crop || "Crop"}</span>
-                          <div className="flex items-center">
-                            <span className="text-gray-700">
-                              {item.price && item.unit ? `₹${item.price}/${item.unit}` : 'Price varies'}
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {getSortedCrops().map((crop, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
+                        <div className="h-40 overflow-hidden relative">
+                          <img 
+                            src={crop.image} 
+                            alt={crop.name} 
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://placehold.co/600x400/10b981/ffffff?text=${crop.name}&font=Montserrat`;
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                          
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 flex gap-2">
+                            <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold rounded-lg shadow-sm">
+                              {crop.name}
                             </span>
-                            {item.trend && (
-                              <span className={`ml-2 ${
-                                item.trend === 'up' ? 'text-green-600' : 
-                                item.trend === 'down' ? 'text-red-600' : 'text-gray-600'
-                              }`}>
-                                {item.trend === 'up' ? '↑' : item.trend === 'down' ? '↓' : '→'}
-                              </span>
-                            )}
+                          </div>
+                          
+                          {/* Score Ring */}
+                          <div className="absolute top-3 right-3 w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                            {crop.suitabilityScore}%
+                          </div>
+
+                          <div className="absolute bottom-3 left-3 right-3 text-white">
+                            <div className="flex gap-4 text-xs font-medium">
+                              <span className="flex items-center gap-1"><FaChartLine className={crop.profitScore > 80 ? 'text-green-400' : 'text-yellow-400'} /> Profit: {crop.profitability}</span>
+                              <span className="flex items-center gap-1"><FaTint className="text-blue-300" /> {crop.waterReq}</span>
+                            </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No market price information available</p>
-                  )}
-                </div>
-                
-                {/* Soil Testing Recommendations */}
-                <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                    <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">7</span>
-                    Soil Testing Recommendations
-                  </h3>
-                  <div className="text-gray-700">
-                    {renderContent(getArrayData('soilTestingRecommendations'))}
-                  </div>
-                </div>
-                
-                {/* Government Schemes - if available */}
-                {selectedAdvisory.governmentSchemes && selectedAdvisory.governmentSchemes.length > 0 && (
-                  <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-green-700 mb-3 border-b pb-2">
-                      <span className="inline-block w-6 h-6 bg-green-100 text-green-700 rounded-full text-center mr-2">8</span>
-                      Government Schemes
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedAdvisory.governmentSchemes.map((scheme, index) => (
-                        <span
-                          key={index}
-                          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                        >
-                          {scheme}
-                        </span>
-                      ))}
-                    </div>
+                        
+                        <div className="p-5">
+                          <div className="space-y-4">
+                            {/* Key Stats */}
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Est. Yield</span>
+                                <span className="font-semibold text-gray-800">{crop.baseYield}</span>
+                              </div>
+                              <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Duration</span>
+                                <span className="font-semibold text-gray-800">{crop.harvestDuration}</span>
+                              </div>
+                            </div>
+
+                            {/* Fertilizer */}
+                            <div>
+                              <h4 className="text-xs font-bold text-gray-900 mb-1 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Fertilizer Req.
+                              </h4>
+                              <p className="text-xs text-gray-600 leading-relaxed">{crop.fertilizers}</p>
+                            </div>
+                            
+                            {/* Weather */}
+                            <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100">
+                              <h4 className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-2">Climate Intelligence</h4>
+                              <div className="flex justify-between text-xs font-medium text-blue-900">
+                                <span className="flex items-center gap-1"><FaThermometerHalf /> {crop.weatherInfo.temp}</span>
+                                <span className="flex items-center gap-1"><FaCloudRain /> Drought Risk: {crop.weatherInfo.droughtRisk}</span>
+                              </div>
+                            </div>
+                            
+                            {/* Diseases */}
+                            <div>
+                              <h4 className="text-[10px] font-bold text-red-800 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                <FaExclamationTriangle className="text-red-500" /> Disease Risks
+                              </h4>
+                              <div className="flex flex-wrap gap-1.5">
+                                {crop.diseaseRisks.map(d => (
+                                  <span key={d} className="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-md border border-red-100">
+                                    {d}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
-            <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center h-full">
-              <img
-                src="/assets/images/farm.svg"
-                alt="Farm illustration"
-                className="w-1/2 max-w-xs mb-6 opacity-75"
-              />
-              <h3 className="text-xl font-semibold text-green-700 mb-2">
-                No Advisory Selected
-              </h3>
-              <p className="text-gray-500 text-center max-w-md">
-                Select an existing advisory from the list or create a new one to
-                view detailed recommendations for your farm.
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+          
         </div>
       </div>
     </div>
   );
 }
 
-export default Advisory; 
+export default Advisory;

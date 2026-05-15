@@ -17,9 +17,9 @@ const NewPost = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState([
-    'General', 'Crop Management', 'Livestock', 'Equipment', 
-    'Market Prices', 'Weather', 'Soil Management', 'Pest Control',
-    'Irrigation', 'Organic Farming', 'Technology', 'Other'
+    'Crop Production', 'Livestock', 'Farm Equipment', 'Market Trends', 
+    'Schemes & Subsidies', 'Weather', 'Pest Control', 'Soil Management', 
+    'General Discussion'
   ]);
 
   useEffect(() => {

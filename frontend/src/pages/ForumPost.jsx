@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { FaArrowLeft, FaTrash, FaUser, FaClock, FaThumbsUp, FaEye, FaTag, FaCheckCircle, FaReply } from 'react-icons/fa';
 import AuthContext from '../context/AuthContext';
 import Spinner from '../components/Spinner';
-import forumService from '../api/forumService';
+import forumService from '../services/forumService';
 
 function ForumPost() {
   const [post, setPost] = useState(null);

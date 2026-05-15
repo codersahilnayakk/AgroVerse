@@ -19,7 +19,7 @@ Before starting any migration, create a backup of your MongoDB database:
 mkdir -p ./db-backups/$(date +%Y-%m-%d)
 
 # Run mongodump
-mongodump --db agriconnect --out ./db-backups/$(date +%Y-%m-%d)
+mongodump --db agroverse --out ./db-backups/$(date +%Y-%m-%d)
 ```
 
 ### 2. Install Dependencies
@@ -27,7 +27,7 @@ mongodump --db agriconnect --out ./db-backups/$(date +%Y-%m-%d)
 Make sure all dependencies are installed:
 
 ```bash
-cd /path/to/AgriConnect/backend
+cd /path/to/Agroverse/backend
 npm install
 ```
 
@@ -37,7 +37,7 @@ The migration script will move user-specific advisories to the new collection:
 
 ```bash
 # Navigate to the backend directory
-cd /path/to/AgriConnect/backend
+cd /path/to/Agroverse/backend
 
 # Run the migration script
 node scripts/migrateAdvisories.js
@@ -56,8 +56,8 @@ Check that both collections have the expected data:
 # Start MongoDB shell
 mongo
 
-# Switch to the agriconnect database
-use agriconnect
+# Switch to the agroverse database
+use agroverse
 
 # Count documents in each collection
 db.advisories.countDocuments()  # Should contain both pre-defined and user data at this point
@@ -125,7 +125,7 @@ For a smooth migration, execute the scripts in this order:
 2. Fix any issues (database connection, permissions, etc.)
 3. Restore from backup if needed:
    ```bash
-   mongorestore --db agriconnect ./db-backups/YYYY-MM-DD/agriconnect
+   mongorestore --db agroverse ./db-backups/YYYY-MM-DD/agroverse
    ```
 4. Try running the migration again
 
@@ -146,7 +146,7 @@ If you need to revert to the previous structure:
 
 2. Restore the original data from backup:
    ```bash
-   mongorestore --db agriconnect ./db-backups/YYYY-MM-DD/agriconnect
+   mongorestore --db agroverse ./db-backups/YYYY-MM-DD/agroverse
    ```
 
 3. Switch back to the previous codebase version (without UserAdvisory model) 

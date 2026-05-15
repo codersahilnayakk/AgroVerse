@@ -10,7 +10,7 @@ const path = require('path');
 dotenv.config();
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/agriconnect', {
+mongoose.connect('mongodb://localhost:27017/agroverse', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })

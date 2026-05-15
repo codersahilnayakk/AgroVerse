@@ -1,13 +1,24 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaUser, FaBars, FaTimes, FaSeedling } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import AuthContext from '../context/AuthContext.jsx';
+import AuthContext from '../context/AuthContext';
+import GoogleTranslate from './GoogleTranslate';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  const isHome = location.pathname === '/';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -15,60 +26,93 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
+  const toggleMenu = () => setIsOpen(!isOpen);
+
+  const navBg = isHome && !scrolled
+    ? 'bg-transparent'
+    : 'navbar-premium';
+
+  const textColor = isHome && !scrolled
+    ? 'text-white/80 hover:text-white'
+    : 'text-gray-700 hover:text-emerald-600';
+
+  const brandColor = isHome && !scrolled
+    ? 'text-white'
+    : 'text-emerald-700';
 
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto px-4">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navBg} ${scrolled ? 'shadow-sm' : ''}`}>
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
-          <Link to="/" className="flex items-center">
-            <FaSeedling className="text-green-600 text-2xl mr-2" />
-            <span className="text-xl font-bold text-green-700">AgriConnect</span>
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+              <FaSeedling className="text-white text-sm" />
+            </div>
+            <span className={`text-xl font-extrabold tracking-tight ${brandColor} transition-colors`}>
+              Agro<span className="font-extrabold">Verse</span>
+            </span>
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-6">
-            <Link to="/" className="text-gray-700 hover:text-green-600">Home</Link>
-            <Link to="/advisory" className="text-gray-700 hover:text-green-600">Advisory</Link>
-            <Link to="/forum" className="text-gray-700 hover:text-green-600">Forum</Link>
-            <Link to="/schemes" className="text-gray-700 hover:text-green-600">Schemes</Link>
+          <div className="hidden md:flex items-center gap-1">
+            {[
+              { to: '/', label: 'Home' },
+              { to: '/advisory', label: 'Advisory' },
+              { to: '/forum', label: 'Forum' },
+              { to: '/schemes', label: 'Schemes' },
+            ].map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  location.pathname === item.to
+                    ? (isHome && !scrolled ? 'bg-white/10 text-white' : 'bg-emerald-50 text-emerald-700')
+                    : textColor
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
 
-          {/* User Menu - Desktop */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Right side */}
+          <div className="hidden md:flex items-center gap-3">
+            <GoogleTranslate />
             {user ? (
               <div className="relative group">
-                <button className="flex items-center text-gray-700 hover:text-green-600">
-                  <span className="mr-1">{user.name}</span>
-                  <FaUser />
+                <button className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${textColor}`}>
+                  <span>{user.name}</span>
+                  <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                    {user.name?.charAt(0)?.toUpperCase()}
+                  </div>
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-                  <Link to="/profile" className="block px-4 py-2 text-gray-700 hover:bg-green-50">Profile</Link>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-green-50"
-                  >
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-10 hidden group-hover:block">
+                  <Link to="/dashboard" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 transition-colors">Dashboard</Link>
+                  <Link to="/profile" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 transition-colors">Profile</Link>
+                  <hr className="my-1 border-gray-100" />
+                  <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
                     Logout
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex space-x-2">
-                <Link to="/login" className="px-4 py-2 text-gray-700 hover:text-green-600">Login</Link>
-                <Link to="/register" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                  Register
+              <div className="flex items-center gap-2">
+                <Link to="/login" className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${textColor}`}>
+                  Login
+                </Link>
+                <Link to="/register" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-all shadow-sm hover:shadow-md">
+                  Get Started
                 </Link>
               </div>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button onClick={toggleMenu} className="text-gray-700">
-              {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+          <div className="md:hidden flex items-center gap-2">
+            <GoogleTranslate />
+            <button onClick={toggleMenu} className={`p-2 rounded-lg transition-colors ${isHome && !scrolled ? 'text-white' : 'text-gray-700'}`}>
+              {isOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
             </button>
           </div>
         </div>
@@ -76,34 +120,33 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t py-2">
-          <div className="container mx-auto px-4 space-y-2">
-            <Link to="/" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Home</Link>
-            <Link to="/advisory" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Advisory</Link>
-            <Link to="/forum" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Forum</Link>
-            <Link to="/schemes" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Schemes</Link>
-            
-            <div className="border-t pt-2 mt-2">
-              {user ? (
-                <>
-                  <Link to="/profile" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Profile</Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      toggleMenu();
-                    }}
-                    className="block w-full text-left py-2 text-gray-700 hover:text-green-600"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Login</Link>
-                  <Link to="/register" className="block py-2 text-gray-700 hover:text-green-600" onClick={toggleMenu}>Register</Link>
-                </>
-              )}
-            </div>
+        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+          <div className="px-6 py-4 space-y-1">
+            {[
+              { to: '/', label: 'Home' },
+              { to: '/advisory', label: 'Advisory' },
+              { to: '/forum', label: 'Forum' },
+              { to: '/schemes', label: 'Schemes' },
+            ].map((item) => (
+              <Link key={item.to} to={item.to} className="block py-2.5 px-3 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 text-sm font-medium transition-colors" onClick={toggleMenu}>
+                {item.label}
+              </Link>
+            ))}
+            <hr className="my-2 border-gray-100" />
+            {user ? (
+              <>
+                <Link to="/dashboard" className="block py-2.5 px-3 rounded-lg text-gray-700 hover:bg-emerald-50 text-sm font-medium" onClick={toggleMenu}>Dashboard</Link>
+                <Link to="/profile" className="block py-2.5 px-3 rounded-lg text-gray-700 hover:bg-emerald-50 text-sm font-medium" onClick={toggleMenu}>Profile</Link>
+                <button onClick={() => { handleLogout(); toggleMenu(); }} className="block w-full text-left py-2.5 px-3 rounded-lg text-red-600 hover:bg-red-50 text-sm font-medium">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <div className="flex gap-2 pt-2">
+                <Link to="/login" className="flex-1 text-center py-2.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50" onClick={toggleMenu}>Login</Link>
+                <Link to="/register" className="flex-1 text-center py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700" onClick={toggleMenu}>Get Started</Link>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -111,4 +154,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;

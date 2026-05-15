@@ -22,7 +22,7 @@ If you're upgrading from a previous version, follow these steps to migrate your 
 Always create a backup before performing migrations:
 
 ```bash
-mongodump --db agriconnect --out ./backup-$(date +%Y%m%d)
+mongodump --db agroverse --out ./backup-$(date +%Y%m%d)
 ```
 
 ### Step 2: Run the Migration Script

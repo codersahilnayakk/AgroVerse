@@ -1,99 +1,70 @@
 import axios from 'axios';
-import { getAuthConfig } from '../utils/helpers';
 
-const API_URL = 'http://localhost:5000/api/forum';
+const API_URL = '/api/forum';
 
 // Post management
 const getPosts = async (page = 1, limit = 10, category = '') => {
   const query = new URLSearchParams();
-  if (page) query.append('page', page);
-  if (limit) query.append('limit', limit);
   if (category) query.append('category', category);
   
-  const response = await axios.get(`${API_URL}/posts?${query.toString()}`);
+  const response = await axios.get(`${API_URL}?${query.toString()}`);
   return response.data;
 };
 
 const getPostById = async (id) => {
-  const response = await axios.get(`${API_URL}/posts/${id}`);
+  const response = await axios.get(`${API_URL}/${id}`);
   return response.data;
 };
 
 const createPost = async (postData) => {
-  const response = await axios.post(`${API_URL}/posts`, postData, getAuthConfig());
+  const response = await axios.post(`${API_URL}`, postData);
   return response.data;
 };
 
 const updatePost = async (id, postData) => {
-  const response = await axios.put(`${API_URL}/posts/${id}`, postData, getAuthConfig());
+  const response = await axios.put(`${API_URL}/${id}`, postData);
   return response.data;
 };
 
 const deletePost = async (id) => {
-  const response = await axios.delete(`${API_URL}/posts/${id}`, getAuthConfig());
+  const response = await axios.delete(`${API_URL}/${id}`);
   return response.data;
 };
 
 // Comment management
-const getCommentsByPostId = async (postId) => {
-  const response = await axios.get(`${API_URL}/posts/${postId}/comments`);
-  return response.data;
-};
-
-const addComment = async (postId, text) => {
+const addComment = async (postId, commentText) => {
   const response = await axios.post(
-    `${API_URL}/posts/${postId}/comments`, 
-    { text }, 
-    getAuthConfig()
+    `${API_URL}/${postId}/comments`, 
+    { comment: commentText }
   );
   return response.data;
 };
 
-const updateComment = async (postId, commentId, text) => {
+const updateComment = async (postId, commentId, commentText) => {
   const response = await axios.put(
-    `${API_URL}/posts/${postId}/comments/${commentId}`, 
-    { text }, 
-    getAuthConfig()
+    `${API_URL}/${postId}/comments/${commentId}`, 
+    { comment: commentText }
   );
   return response.data;
 };
 
 const deleteComment = async (postId, commentId) => {
   const response = await axios.delete(
-    `${API_URL}/posts/${postId}/comments/${commentId}`, 
-    getAuthConfig()
+    `${API_URL}/${postId}/comments/${commentId}`
   );
   return response.data;
 };
 
 // User interactions
 const likePost = async (postId) => {
-  const response = await axios.post(
-    `${API_URL}/posts/${postId}/like`, 
-    {}, 
-    getAuthConfig()
-  );
+  const response = await axios.put(`${API_URL}/${postId}/like`, {});
   return response.data;
 };
 
-const getUserBookmarks = async () => {
-  const response = await axios.get(`${API_URL}/bookmarks`, getAuthConfig());
-  return response.data;
-};
-
-const addBookmark = async (postId) => {
-  const response = await axios.post(
-    `${API_URL}/bookmarks/${postId}`, 
-    {}, 
-    getAuthConfig()
-  );
-  return response.data;
-};
-
-const removeBookmark = async (postId) => {
-  const response = await axios.delete(
-    `${API_URL}/bookmarks/${postId}`, 
-    getAuthConfig()
+const likeComment = async (postId, commentId) => {
+  const response = await axios.put(
+    `${API_URL}/${postId}/comments/${commentId}/like`, 
+    {}
   );
   return response.data;
 };
@@ -105,12 +76,7 @@ const searchPosts = async (query) => {
 };
 
 const getPostsByUser = async (userId) => {
-  const response = await axios.get(`${API_URL}/user/${userId}/posts`);
-  return response.data;
-};
-
-const getPostCategories = async () => {
-  const response = await axios.get(`${API_URL}/categories`);
+  const response = await axios.get(`${API_URL}/user/${userId}`);
   return response.data;
 };
 
@@ -120,17 +86,24 @@ const forumService = {
   createPost,
   updatePost,
   deletePost,
-  getCommentsByPostId,
   addComment,
   updateComment,
   deleteComment,
   likePost,
-  getUserBookmarks,
-  addBookmark,
-  removeBookmark,
+  likeComment,
   searchPosts,
   getPostsByUser,
-  getPostCategories
+  getUserPosts: async (userId) => {
+    if (!userId) return [];
+    try {
+      const response = await axios.get(`${API_URL}/user/${userId}`);
+      return response.data;
+    } catch { return []; }
+  },
+  getUserBookmarks: async () => {
+    // Placeholder until backend API is implemented
+    return [];
+  }
 };
 
 export default forumService; 

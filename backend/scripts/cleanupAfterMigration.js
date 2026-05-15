@@ -14,7 +14,7 @@ const rl = readline.createInterface({
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/agriconnect', {
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/agroverse', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })

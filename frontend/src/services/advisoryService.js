@@ -106,6 +106,20 @@ const getFertilizerRecommendations = async (params) => {
   }
 };
 
+/**
+ * Get available advisory combinations (soil types, seasons, water levels)
+ * @returns {Promise<Object>} Available combinations
+ */
+const getAdvisoryCombinations = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/combinations`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error, { silent: true });
+    throw error;
+  }
+};
+
 const advisoryService = {
   getAdvisories,
   getAdvisoryById,
@@ -113,7 +127,8 @@ const advisoryService = {
   deleteAdvisory,
   getRecommendations,
   getCropsList,
-  getFertilizerRecommendations
+  getFertilizerRecommendations,
+  getAdvisoryCombinations
 };
 
 export default advisoryService; 

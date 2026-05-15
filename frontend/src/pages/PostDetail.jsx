@@ -4,8 +4,6 @@ import {
   FaArrowLeft, 
   FaThumbsUp, 
   FaRegThumbsUp, 
-  FaBookmark, 
-  FaRegBookmark, 
   FaShare, 
   FaTag,
   FaCalendarAlt,
@@ -31,7 +29,6 @@ const PostDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -45,11 +42,6 @@ const PostDetail = () => {
         setComments(postData.comments || []);
         setLiked(postData.likes?.includes(user?._id));
         setLikeCount(postData.likes?.length || 0);
-        
-        if (user) {
-          const bookmarks = await forumService.getUserBookmarks();
-          setBookmarked(bookmarks.some(bookmark => bookmark._id === id));
-        }
       } catch (error) {
         toast.error('Failed to load post');
         console.error(error);
@@ -73,27 +65,6 @@ const PostDetail = () => {
       setLikeCount(liked ? likeCount - 1 : likeCount + 1);
     } catch (error) {
       toast.error('Failed to like post');
-      console.error(error);
-    }
-  };
-  
-  const handleBookmark = async () => {
-    if (!user) {
-      toast.error('Please log in to bookmark posts');
-      return;
-    }
-    
-    try {
-      if (bookmarked) {
-        await forumService.removeBookmark(id);
-        toast.success('Post removed from bookmarks');
-      } else {
-        await forumService.addBookmark(id);
-        toast.success('Post added to bookmarks');
-      }
-      setBookmarked(!bookmarked);
-    } catch (error) {
-      toast.error('Failed to update bookmark');
       console.error(error);
     }
   };
@@ -266,18 +237,6 @@ const PostDetail = () => {
                     <FaRegThumbsUp className="mr-1" />
                   )}
                   <span>{likeCount}</span>
-                </button>
-                
-                <button 
-                  onClick={handleBookmark} 
-                  className="flex items-center text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400"
-                  title={bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
-                >
-                  {bookmarked ? (
-                    <FaBookmark className="text-yellow-600 dark:text-yellow-400" />
-                  ) : (
-                    <FaRegBookmark />
-                  )}
                 </button>
                 
                 <button 

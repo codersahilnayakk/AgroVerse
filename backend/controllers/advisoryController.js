@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const Advisory = require('../models/advisoryModel');
 const UserAdvisory = require('../models/userAdvisoryModel');
 const Scheme = require('../models/schemeModel');
+const { generateAIRecommendations } = require('../services/agriDataset');
 
 // @desc    Create a new advisory
 // @route   POST /api/advisory
@@ -14,11 +15,11 @@ const createAdvisory = asyncHandler(async (req, res) => {
     throw new Error(errors.array()[0].msg);
   }
 
-  const { soilType, season, waterLevel } = req.body;
+  const { soilType, season, waterLevel, region } = req.body;
 
-  if (!soilType || !season || !waterLevel) {
+  if (!soilType || !season || !waterLevel || !region) {
     res.status(400);
-    throw new Error('Please provide soil type, season, and water level');
+    throw new Error('Please provide soil type, season, water level, and region');
   }
 
   // First, try to find a matching advisory from existing pre-defined data
@@ -36,6 +37,7 @@ const createAdvisory = asyncHandler(async (req, res) => {
       soilType,
       season,
       waterLevel,
+      region,
       recommendedCrops: existingAdvisory.recommendedCrops,
       // Handle both field name formats and keep the original format (array or string)
       fertilizerTips: existingAdvisory.fertilizerRecommendations || existingAdvisory.fertilizerTips,
@@ -66,6 +68,7 @@ const createAdvisory = asyncHandler(async (req, res) => {
       soilType,
       season,
       waterLevel,
+      region,
       recommendedCrops,
       fertilizerTips,
       soilManagementTips,
@@ -900,6 +903,20 @@ const generateSoilTestingRecommendations = (soilType) => {
   return recommendations[soilType] || 'Recommended tests: pH, NPK levels, organic matter content, and micronutrients. Contact your nearest Krishi Vigyan Kendra (KVK) or agricultural university for soil testing services.';
 };
 
+// @desc    Get AI recommendations without creating an advisory
+// @route   POST /api/advisory/recommendations
+// @access  Public
+const getRecommendations = asyncHandler(async (req, res) => {
+  const { soilType, season, waterLevel, region } = req.body;
+  if (!soilType || !season || !waterLevel || !region) {
+    res.status(400);
+    throw new Error('Please provide soil type, season, water level, and region');
+  }
+
+  const recommendations = generateAIRecommendations(soilType, season, waterLevel, region);
+  res.status(200).json(recommendations);
+});
+
 module.exports = {
   createAdvisory,
   getAdvisories,
@@ -907,5 +924,6 @@ module.exports = {
   updateAdvisory,
   deleteAdvisory,
   getAdvisoryCombinations,
-  migrateUserAdvisories
-}; 
+  migrateUserAdvisories,
+  getRecommendations
+};

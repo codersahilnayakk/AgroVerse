@@ -62,7 +62,7 @@ const Profile = () => {
       setLoading(true);
       try {
         // Fetch user forum posts
-        const postsData = await forumService.getUserPosts();
+        const postsData = await forumService.getUserPosts(user._id);
         setUserPosts(postsData);
         
         // Fetch user forum bookmarks
@@ -158,8 +158,8 @@ const Profile = () => {
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Your Profile</h1>
       
       {/* Profile Tabs */}
-      <div className="mb-6 border-b">
-        <nav className="flex space-x-8">
+      <div className="mb-6 border-b overflow-x-auto scrollbar-hide">
+        <nav className="flex space-x-8 whitespace-nowrap pb-1">
           <button
             onClick={() => setActiveTab('profile')}
             className={`pb-4 px-1 ${
@@ -227,11 +227,17 @@ const Profile = () => {
                   <form onSubmit={handleSubmit}>
                     <div className="mb-6 flex flex-col items-center">
                       <div className="relative mb-3">
-                        <img
-                          src={previewImage || profileData.profilePicture || 'https://via.placeholder.com/150'}
-                          alt={profileData.name}
-                          className="w-32 h-32 rounded-full object-cover"
-                        />
+                        {previewImage || profileData.profilePicture ? (
+                          <img
+                            src={previewImage || profileData.profilePicture}
+                            alt={profileData.name}
+                            className="w-32 h-32 rounded-full object-cover border-4 border-green-50 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-32 h-32 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-5xl font-bold border-4 border-green-50 shadow-sm">
+                            {profileData.name ? profileData.name.charAt(0).toUpperCase() : <FaUser />}
+                          </div>
+                        )}
                         <label
                           htmlFor="profile-image"
                           className="absolute bottom-0 right-0 bg-green-600 text-white p-2 rounded-full cursor-pointer"
@@ -352,11 +358,17 @@ const Profile = () => {
                   <div>
                     <div className="flex flex-col md:flex-row">
                       <div className="mb-6 md:mb-0 md:mr-8 flex flex-col items-center">
-                        <img
-                          src={profileData.profilePicture || 'https://via.placeholder.com/150'}
-                          alt={profileData.name}
-                          className="w-32 h-32 rounded-full object-cover mb-3"
-                        />
+                        {profileData.profilePicture ? (
+                          <img
+                            src={profileData.profilePicture}
+                            alt={profileData.name}
+                            className="w-32 h-32 rounded-full object-cover mb-3 border-4 border-green-50 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-32 h-32 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-5xl font-bold mb-3 border-4 border-green-50 shadow-sm">
+                            {profileData.name ? profileData.name.charAt(0).toUpperCase() : <FaUser />}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex-grow">

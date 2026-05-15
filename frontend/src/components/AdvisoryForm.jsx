@@ -1,109 +1,22 @@
 import { useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import AuthContext from '../context/AuthContext';
-import advisoryService from '../api/advisoryService';
+import advisoryService from '../services/advisoryService';
 import handleApiError from '../utils/handleApiError';
 import Spinner from './Spinner';
+import { SOIL_TYPES, SEASONS, WATER_LEVELS, REGIONS } from '../data/agriDataset';
+import { FaMicrophone, FaRobot } from 'react-icons/fa';
 
 const AdvisoryForm = ({ onAdvisoryCreated }) => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
-  const [formLoading, setFormLoading] = useState(true);
+  const [listening, setListening] = useState(false);
   const [formData, setFormData] = useState({
     soilType: '',
     season: '',
     waterLevel: '',
     region: ''
   });
-  
-  const [availableCombinations, setAvailableCombinations] = useState({
-    soilTypes: [],
-    seasons: [],
-    waterLevels: [],
-    combinations: []
-  });
-
-  // Default options in case API fails
-  const defaultSoilTypes = [
-    { value: 'Alluvial', label: 'Alluvial Soil' },
-    { value: 'Black', label: 'Black Soil' },
-    { value: 'Red', label: 'Red Soil' },
-    { value: 'Laterite', label: 'Laterite Soil' },
-    { value: 'Mountain', label: 'Mountain Soil' },
-    { value: 'Desert', label: 'Desert Soil' },
-    { value: 'Saline', label: 'Saline Soil' }
-  ];
-
-  const defaultSeasons = [
-    { value: 'Kharif', label: 'Kharif (Monsoon)' },
-    { value: 'Rabi', label: 'Rabi (Winter)' },
-    { value: 'Zaid', label: 'Zaid (Summer)' }
-  ];
-
-  const defaultWaterLevels = [
-    { value: 'High', label: 'High' },
-    { value: 'Medium', label: 'Medium' },
-    { value: 'Low', label: 'Low' }
-  ];
-
-  const regions = [
-    { value: 'north', label: 'North India' },
-    { value: 'south', label: 'South India' },
-    { value: 'east', label: 'East India' },
-    { value: 'west', label: 'West India' },
-    { value: 'central', label: 'Central India' },
-    { value: 'northeast', label: 'North-East India' }
-  ];
-
-  // Get available combinations from API
-  useEffect(() => {
-    const fetchCombinations = async () => {
-      try {
-        const data = await advisoryService.getAdvisoryCombinations();
-        
-        // Format soil types for dropdown
-        const soilTypeOptions = data.soilTypes.map(type => ({
-          value: type,
-          label: `${type} Soil`
-        }));
-        
-        // Format seasons for dropdown
-        const seasonOptions = data.seasons.map(season => {
-          let label = season;
-          if (season === 'Kharif') label += ' (Monsoon)';
-          if (season === 'Rabi') label += ' (Winter)';
-          if (season === 'Zaid') label += ' (Summer)';
-          return { value: season, label };
-        });
-        
-        // Format water levels for dropdown
-        const waterLevelOptions = data.waterLevels.map(level => ({
-          value: level,
-          label: level
-        }));
-        
-        setAvailableCombinations({
-          soilTypes: soilTypeOptions.length > 0 ? soilTypeOptions : defaultSoilTypes,
-          seasons: seasonOptions.length > 0 ? seasonOptions : defaultSeasons,
-          waterLevels: waterLevelOptions.length > 0 ? waterLevelOptions : defaultWaterLevels,
-          combinations: data.combinations || []
-        });
-      } catch (error) {
-        console.error('Error fetching advisory combinations:', error);
-        // Use default values if API fails
-        setAvailableCombinations({
-          soilTypes: defaultSoilTypes,
-          seasons: defaultSeasons,
-          waterLevels: defaultWaterLevels,
-          combinations: []
-        });
-      } finally {
-        setFormLoading(false);
-      }
-    };
-    
-    fetchCombinations();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -113,47 +26,89 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
     }));
   };
 
-  // Get available options based on selected values
-  const getFilteredOptions = (field) => {
-    if (!formData.soilType && !formData.season && !formData.waterLevel) {
-      // If nothing selected yet, return all options
-      switch (field) {
-        case 'soilType': return availableCombinations.soilTypes;
-        case 'season': return availableCombinations.seasons;
-        case 'waterLevel': return availableCombinations.waterLevels;
-        default: return [];
-      }
+  // Voice Recognition
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error("Your browser doesn't support voice recognition.");
+      return;
     }
 
-    // Filter combinations based on selected values
-    const filteredCombinations = availableCombinations.combinations.filter(combo => {
-      if (formData.soilType && combo.soilType !== formData.soilType) return false;
-      if (formData.season && combo.season !== formData.season) return false;
-      if (formData.waterLevel && combo.waterLevel !== formData.waterLevel) return false;
-      return true;
-    });
-
-    // Extract unique values for the requested field
-    const uniqueValues = [...new Set(filteredCombinations.map(combo => combo[field]))];
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
     
-    // Format values as options
-    switch (field) {
-      case 'soilType': 
-        return availableCombinations.soilTypes.filter(opt => uniqueValues.includes(opt.value));
-      case 'season': 
-        return availableCombinations.seasons.filter(opt => uniqueValues.includes(opt.value));
-      case 'waterLevel': 
-        return availableCombinations.waterLevels.filter(opt => uniqueValues.includes(opt.value));
-      default: 
-        return [];
-    }
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN'; // Indian English
+
+    recognition.onstart = () => {
+      setListening(true);
+      toast.info('Listening... Try saying "Black soil in Kharif for Punjab with Medium water"');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      console.log('Heard:', transcript);
+      
+      let updatedForm = { ...formData };
+      let found = false;
+
+      // Extract Soil
+      SOIL_TYPES.forEach(soil => {
+        if (transcript.includes(soil.split(' ')[0].toLowerCase())) {
+          updatedForm.soilType = soil;
+          found = true;
+        }
+      });
+
+      // Extract Season
+      SEASONS.forEach(s => {
+        if (transcript.includes(s.toLowerCase())) {
+          updatedForm.season = s;
+          found = true;
+        }
+      });
+
+      // Extract Water
+      WATER_LEVELS.forEach(w => {
+        if (transcript.includes(w.toLowerCase())) {
+          updatedForm.waterLevel = w;
+          found = true;
+        }
+      });
+
+      // Extract Region
+      REGIONS.forEach(r => {
+        if (transcript.includes(r.toLowerCase())) {
+          updatedForm.region = r;
+          found = true;
+        }
+      });
+
+      if (found) {
+        setFormData(updatedForm);
+        toast.success("Voice inputs applied!");
+      } else {
+        toast.error("Couldn't match any specific agricultural keywords. Please try again or type manually.");
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error(event.error);
+      setListening(false);
+      toast.error('Voice recognition failed.');
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognition.start();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate form data
-    if (!formData.soilType || !formData.season || !formData.waterLevel) {
+    if (!formData.soilType || !formData.season || !formData.waterLevel || !formData.region) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -162,138 +117,123 @@ const AdvisoryForm = ({ onAdvisoryCreated }) => {
     
     try {
       const newAdvisory = await advisoryService.createAdvisory(formData, user.token);
-      toast.success('Advisory created successfully');
+      toast.success('AI Advisory Generated Successfully!');
       
-      // Reset form
-      setFormData({
-        soilType: '',
-        season: '',
-        waterLevel: '',
-        region: ''
-      });
-      
-      // Pass the new advisory to parent component
       if (onAdvisoryCreated) {
-        onAdvisoryCreated(newAdvisory);
+        onAdvisoryCreated({ ...newAdvisory, ...formData });
       }
     } catch (error) {
       handleApiError(error, {
-        defaultMessage: 'Failed to create advisory. Please try again later.'
+        defaultMessage: 'Failed to generate advisory. Please try again later.'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  if (formLoading) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 flex justify-center items-center min-h-[300px]">
-        <Spinner />
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-green-700 mb-4">
-        Get Crop Recommendations
-      </h2>
+    <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-emerald-100/50 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <FaRobot className="text-emerald-500" /> AI Farm Analyzer
+          </h2>
+          <p className="text-xs text-gray-500 mt-1">Enter your farm details to get intelligent insights</p>
+        </div>
+        
+        <button 
+          type="button" 
+          onClick={startListening}
+          className={`flex items-center justify-center p-3 rounded-full transition-all duration-300 shadow-sm ${listening ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+          title="Voice Assistant"
+        >
+          <FaMicrophone />
+        </button>
+      </div>
       
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium mb-2">
-            Soil Type*
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+            Soil Type *
           </label>
           <select
             name="soilType"
             value={formData.soilType}
             onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm font-medium"
             required
           >
             <option value="">Select Soil Type</option>
-            {getFilteredOptions('soilType').map(soil => (
-              <option key={soil.value} value={soil.value}>
-                {soil.label}
-              </option>
+            {SOIL_TYPES.map(soil => (
+              <option key={soil} value={soil}>{soil}</option>
             ))}
           </select>
         </div>
         
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium mb-2">
-            Season*
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+            Season *
           </label>
           <select
             name="season"
             value={formData.season}
             onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm font-medium"
             required
           >
             <option value="">Select Season</option>
-            {getFilteredOptions('season').map(season => (
-              <option key={season.value} value={season.value}>
-                {season.label}
-              </option>
+            {SEASONS.map(season => (
+              <option key={season} value={season}>{season}</option>
             ))}
           </select>
         </div>
         
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium mb-2">
-            Water Availability*
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+            Water Availability *
           </label>
           <select
             name="waterLevel"
             value={formData.waterLevel}
             onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm font-medium"
             required
           >
             <option value="">Select Water Level</option>
-            {getFilteredOptions('waterLevel').map(level => (
-              <option key={level.value} value={level.value}>
-                {level.label}
-              </option>
+            {WATER_LEVELS.map(level => (
+              <option key={level} value={level}>{level}</option>
             ))}
           </select>
         </div>
         
         <div className="mb-6">
-          <label className="block text-gray-700 font-medium mb-2">
-            Region (Optional)
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+            Region / State *
           </label>
           <select
             name="region"
             value={formData.region}
             onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm font-medium"
+            required
           >
             <option value="">Select Region</option>
-            {regions.map(region => (
-              <option key={region.value} value={region.value}>
-                {region.label}
-              </option>
+            {REGIONS.map(region => (
+              <option key={region} value={region}>{region}</option>
             ))}
           </select>
-          <p className="text-sm text-gray-500 mt-1">
-            Selecting a region helps us provide more accurate recommendations
-          </p>
         </div>
         
-        <div className="text-right">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
-          >
-            {loading ? <Spinner size="sm" /> : 'Get Recommendations'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all focus:outline-none focus:ring-4 focus:ring-emerald-500/30 disabled:opacity-70 flex items-center justify-center gap-2"
+        >
+          {loading ? <Spinner size="sm" /> : 'Generate AI Recommendations'}
+        </button>
       </form>
     </div>
   );
 };
 
-export default AdvisoryForm; 
+export default AdvisoryForm;

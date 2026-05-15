@@ -14,6 +14,10 @@ const userAdvisorySchema = mongoose.Schema(
       type: String,
       required: [true, 'Please specify water level'],
     },
+    region: {
+      type: String,
+      default: '',
+    },
     recommendedCrops: {
       type: [String],
       default: [],

@@ -1,6 +1,6 @@
-# AgriConnect - Agriculture & Rural Development Platform
+# Agroverse - Agriculture & Rural Development Platform
 
-AgriConnect is a MERN (MongoDB, Express, React, Node.js) stack application designed to empower farmers with knowledge, community support, and access to government schemes.
+Agroverse is a MERN (MongoDB, Express, React, Node.js) stack application designed to empower farmers with knowledge, community support, and access to government schemes.
 
 ## Features
 
@@ -47,7 +47,7 @@ The platform has three main modules:
 ### Setting up the Backend
 1. Navigate to the backend directory:
    ```
-   cd AgriConnect/backend
+   cd Agroverse/backend
    ```
 
 2. Install dependencies:
@@ -59,7 +59,7 @@ The platform has three main modules:
    ```
    NODE_ENV=development
    PORT=5000
-   MONGO_URI=mongodb://localhost:27017/agriconnect
+   MONGO_URI=mongodb://localhost:27017/agroverse
    JWT_SECRET=your_jwt_secret
    ```
 
@@ -71,7 +71,7 @@ The platform has three main modules:
 ### Setting up the Frontend
 1. Navigate to the frontend directory:
    ```
-   cd AgriConnect/frontend
+   cd Agroverse/frontend
    ```
 
 2. Install dependencies:
@@ -118,4 +118,4 @@ The platform has three main modules:
 MIT
 
 ## Acknowledgements
-This project was created to provide a comprehensive platform for farmers to access valuable information and resources for improving their agricultural practices and livelihoods. 
+This project was created to provide a comprehensive platform for farmers to access valuable information and resources for improving their agricultural practices and livelihoods.
