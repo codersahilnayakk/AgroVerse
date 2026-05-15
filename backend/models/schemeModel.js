@@ -127,17 +127,9 @@ const schemeSchema = mongoose.Schema(
   }
 );
 
-// Auto-generate slug from title
-schemeSchema.pre('save', function (next) {
-  if (this.isModified('title') || this.isNew) {
-    this.slug = this.title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  }
-  // Sync legacy fields
+// Auto-generate slug from title and sync legacy fields before validation
+schemeSchema.pre('validate', function (next) {
+  // Sync legacy fields FIRST so validation passes if only legacy fields are provided
   if (this.title && !this.schemeName) this.schemeName = this.title;
   if (this.schemeName && !this.title) this.title = this.schemeName;
   if (this.ministry && !this.department) this.department = this.ministry;
@@ -146,10 +138,21 @@ schemeSchema.pre('save', function (next) {
   if (this.applicationLink && !this.officialLink) this.officialLink = this.applicationLink;
   if (this.bannerImage && !this.imageUrl) this.imageUrl = this.bannerImage;
   if (this.imageUrl && !this.bannerImage) this.bannerImage = this.imageUrl;
+  
   // Convert documents string to requiredDocuments array if needed
   if (this.documents && this.requiredDocuments.length === 0) {
     this.requiredDocuments = this.documents.split(',').map(d => d.trim()).filter(Boolean);
   }
+
+  if ((this.isModified('title') || this.isNew) && this.title) {
+    this.slug = this.title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  }
+  
   next();
 });
 
