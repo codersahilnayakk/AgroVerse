@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaBuilding, FaCheckCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import AdminContext from '../../context/AdminContext';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 const CATEGORIES = ['Income Support', 'Crop Insurance', 'Equipment Subsidy', 'Irrigation', 'Soil Health', 'Organic Farming', 'Women Farmers', 'Livestock', 'Loan Assistance', 'Other'];
 const EMPTY = { schemeName:'', department:'', description:'', category:'Other', eligibility:'', benefits:'', applicationProcess:'', applicationLink:'', documents:'', deadline:'', imageUrl:'' };
@@ -61,24 +62,7 @@ export default function AdminSchemes() {
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('image', file);
-    try {
-      setUploading(true);
-      const res = await adminApi.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setForm({ ...form, imageUrl: res.data });
-      toast.success('Image uploaded successfully!');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error uploading image');
-    } finally {
-      setUploading(false);
-    }
-  };
+  // Image upload functionality replaced by direct URL input
 
   return (
     <div>
@@ -131,7 +115,7 @@ export default function AdminSchemes() {
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200">
                         {s.imageUrl ? (
-                          <img src={s.imageUrl} alt={s.schemeName} className="w-full h-full object-cover" />
+                          <img src={getFullImageUrl(s.imageUrl)} alt={s.schemeName} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400"><FaFileAlt /></div>
                         )}
@@ -201,11 +185,11 @@ export default function AdminSchemes() {
             <div className="p-8 overflow-y-auto custom-scrollbar">
               <form id="scheme-form" onSubmit={handleSave} className="space-y-6">
                 
-                {/* Image Upload Area */}
+                {/* Image URL Area */}
                 <div className="flex items-start gap-6 bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-300">
                   <div className="w-32 h-24 rounded-xl bg-gray-200 overflow-hidden flex-shrink-0 border border-gray-300 shadow-inner">
                     {form.imageUrl ? (
-                      <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={getFullImageUrl(form.imageUrl)} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x400/059669/ffffff?text=Invalid+Image'; }} />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs font-bold gap-1">
                         <FaFileAlt className="text-2xl" /> No Image
@@ -213,10 +197,8 @@ export default function AdminSchemes() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Scheme Banner/Image</label>
-                    <p className="text-xs text-gray-500 mb-3">Upload a high-quality representative image or department logo. Wait for the upload to complete.</p>
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 transition-all cursor-pointer" disabled={uploading} />
-                    {uploading && <div className="mt-2 text-xs font-bold text-emerald-600 animate-pulse">Uploading image securely to server...</div>}
+                    <Input label="Image URL" value={form.imageUrl} onChange={v => setForm({ ...form, imageUrl: v })} placeholder="https://example.com/image.jpg" />
+                    <p className="text-xs text-gray-500 mt-2">Paste a direct link to an image. (e.g., from Google Images, Imgur, or a government site).</p>
                   </div>
                 </div>
 
