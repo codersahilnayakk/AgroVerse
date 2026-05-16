@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import AdminContext from '../../context/AdminContext';
 import { getFullImageUrl } from '../../utils/imageUtils';
 
-const CATEGORIES = ['Income Support', 'Crop Insurance', 'Equipment Subsidy', 'Irrigation', 'Soil Health', 'Organic Farming', 'Women Farmers', 'Livestock', 'Loan Assistance', 'Other'];
+const CATEGORIES = ['Income Support', 'Crop Insurance', 'Equipment Subsidy', 'Irrigation', 'Soil Health', 'Organic Farming', 'Women Farmers', 'Livestock', 'Loan Assistance', 'Infrastructure', 'Credit', 'Cooperative', 'Sustainability', 'Other'];
 const EMPTY = { schemeName:'', department:'', description:'', category:'Other', eligibility:'', benefits:'', applicationProcess:'', applicationLink:'', documents:'', deadline:'', imageUrl:'' };
 
 export default function AdminSchemes() {

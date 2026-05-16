@@ -4,7 +4,7 @@ const Scheme = require('./models/schemeModel');
 
 dotenv.config({ path: './.env' });
 
-mongoose.connect('mongodb://localhost:27017/agroverse', {
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/agroverse', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -119,7 +119,8 @@ const schemesData = [
 const seedData = async () => {
   try {
     await Scheme.deleteMany(); // Clear garbage test data
-    await Scheme.insertMany(schemesData);
+    // Use create() instead of insertMany() to trigger mongoose middleware (pre-validate hooks)
+    await Scheme.create(schemesData);
     console.log('Real Agriculture Schemes Seeded Successfully!');
     process.exit();
   } catch (error) {

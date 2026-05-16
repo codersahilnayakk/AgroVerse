@@ -16,6 +16,10 @@ const CATEGORIES = [
   'Women Farmers',
   'Livestock',
   'Loan Assistance',
+  'Infrastructure',
+  'Credit',
+  'Cooperative',
+  'Sustainability',
   'Other'
 ];
 
@@ -225,6 +229,10 @@ const getCategoryBadgeColor = (category) => {
     'Women Farmers': 'bg-pink-100 text-pink-800 border border-pink-200',
     'Livestock': 'bg-red-100 text-red-800 border border-red-200',
     'Loan Assistance': 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+    'Infrastructure': 'bg-violet-100 text-violet-800 border border-violet-200',
+    'Credit': 'bg-cyan-100 text-cyan-800 border border-cyan-200',
+    'Cooperative': 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+    'Sustainability': 'bg-sky-100 text-sky-800 border border-sky-200',
     'Other': 'bg-gray-100 text-gray-800 border border-gray-200'
   };
   return map[category] || map['Other'];
